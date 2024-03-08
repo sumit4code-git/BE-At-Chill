@@ -20,3 +20,5 @@ const uploadOnCludinary = async (localFilePath) => {
         fs.unlinkSync(localFilePath)//it removes the local saved file as upload failed
     }
 }
+
+export { uploadOnCludinary }
