@@ -10,6 +10,7 @@ const registerUser = asyncHandler( async (req,res) =>{
     if (
         [fullName, email, username, password].some((field) => !field || field.trim() === "")
     ) {
+        // console.log("djd"+field)
         throw new ApiError(400, "All fields are required")
     }
     const userFind = await  User.findOne({
@@ -46,4 +47,60 @@ const registerUser = asyncHandler( async (req,res) =>{
     )
 
 })
-export { registerUser }
+const generateAccessAndRefreshToken = async(userId)=>{
+    try {
+        const user = User.findById(userId)
+        const accessToken = user.generateAccessToken()
+        const refreshToken = user.generateRefreshToken()
+
+        user.refreshToken = refreshToken
+        await user.save({validateBeforeSave:false})
+
+        return { accessToken , refreshToken }
+    } catch (error) {
+        throw new ApiError(400, "Invalid Authorization")
+    }
+}
+
+const loginUser = asyncHandler ( async (req,res) => {
+    const {email, username, password } = req.body
+    if(!username || !email){
+        throw new ApiError(400,"Username or email is required")
+    }
+    const user = await User.findOne({
+        $or: [ {email},{username}]
+    })
+    if(!user){
+        throw new ApiError(400,"user does not exist!")
+    }
+    const isValid = await  user.isPasswordCorrect(password)
+    if(!isValid){
+        throw new ApiError(400,"Incorrect Password")
+    }
+    const {accessToken,refreshToken} =(await generateAccessAndRefreshToken(user._id))
+
+    const loggedInUser = await User.findById(user._id).
+    select("-password -refreshToken")
+    
+    const option = {
+        httpOnly : true,
+        secure: true
+    }
+    return res
+    .status(200)
+    .cookie("accessToken",accessToken,option)
+    .cookie("refreshToken",refreshToken,option)
+    .json (
+        new ApiResponse(200,
+            {
+                user : loggedInUser, accessToken,refreshToken
+            },
+            "Sucessfull login")
+    )
+
+})
+
+export { 
+    registerUser,
+    loginUser 
+}
