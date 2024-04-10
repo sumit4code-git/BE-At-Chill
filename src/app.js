@@ -11,10 +11,12 @@ app.use(cors({
 app.use(express.json({limit:REQUEST_SIZE_LIMIT}))
 app.use(express.urlencoded({extended:true,limit:REQUEST_SIZE_LIMIT}))
 app.use(express.static("public"))
+app.use(cookieParser())
 
 console.log("asjs")
 // routes import
 import userRouter from "./routes/user.router.js";
+import cookieParser from "cookie-parser";
 app.get("/",function (req,res){
     res.send("Helloe")
 });
