@@ -49,7 +49,7 @@ const registerUser = asyncHandler( async (req,res) =>{
 })
 const generateAccessAndRefreshToken = async(userId)=>{
     try {
-        const user = User.findById(userId)
+        const user =await User.findById(userId)
         const accessToken = user.generateAccessToken()
         const refreshToken = user.generateRefreshToken()
 
@@ -58,13 +58,15 @@ const generateAccessAndRefreshToken = async(userId)=>{
 
         return { accessToken , refreshToken }
     } catch (error) {
-        throw new ApiError(400, "Invalid Authorization")
+        throw new ApiError(500, "Something went wrong while generating referesh and access token")
     }
 }
 
 const loginUser = asyncHandler ( async (req,res) => {
     const {email, username, password } = req.body
-    if(!username || !email){
+    console.log(req.body)
+    console.log(username)
+    if(!username && !email){
         throw new ApiError(400,"Username or email is required")
     }
     const user = await User.findOne({
@@ -101,7 +103,7 @@ const loginUser = asyncHandler ( async (req,res) => {
 })
 
 const logOutUser = asyncHandler(async(req,res)=>{
-    await User.findByIdAndUpdate(
+    const userFound = await User.findByIdAndUpdate(
         req.user._id,
         {
             $set: {
@@ -123,7 +125,7 @@ const logOutUser = asyncHandler(async(req,res)=>{
     .json (
         new ApiResponse(200,
             {
-            
+             userId : userFound._id,userName : userFound.username
             },
             "Successfull Logged Out")
     )
