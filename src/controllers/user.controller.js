@@ -197,11 +197,65 @@ const changeUserPassword = asyncHandler(async (req,res)=>{
         )
 
 })
+const updateUserAvatar = asyncHandler(async (req,res)=>{
+    const userAvatar = req.file?.path
+    if(!userAvatar){
+        throw new ApiError ( 400, " Please add avatar image")
+    }
+    const avatarUrl =  await uploadOnCludinary(userAvatar)
+    if(!avatarUrl?.url){
+        throw new ApiError ( 400, "Error while uploading avatar")
+    }
+    const newUser = await User.findByIdAndUpdate(req.user?._id,{
+         $set :{
+            avatar : avatarUrl?.url
+         }
+    },{
+        new : true
+    }).select("-password -refreshToken")
+    return res
+    .status(200)
+    .json (
+        new ApiResponse(200,{
+            newUser
+        },
+            "Successfully Avatar changed")
+    )
+
+})
+const updateUserCoverImage = asyncHandler(async (req,res)=>{
+    const userCoverImage = req.file?.path
+    if(!userCoverImage){
+        throw new ApiError ( 400, " Please add avatar image")
+    }
+    const coverUrl =  await uploadOnCludinary(userCoverImage)
+    if(!coverUrl?.url){
+        throw new ApiError ( 400, "Error while uploading avatar")
+    }
+    const newUser = await User.findByIdAndUpdate(req.user?._id,{
+         $set :{
+            avatar : coverUrl?.url
+         }
+    },{
+        new : true
+    }).select("-password -refreshToken")
+    return res
+    .status(200)
+    .json (
+        new ApiResponse(200,{
+            newUser
+        },
+            "Successfully cover image changed")
+    )
+
+})
 
 export { 
     registerUser,
     loginUser ,
     logOutUser ,
     refreshAccessToken,
-    changeUserPassword
+    changeUserPassword,
+    updateUserAvatar,
+    updateUserCoverImage
 }
