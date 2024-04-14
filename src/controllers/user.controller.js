@@ -108,8 +108,8 @@ const logOutUser = asyncHandler(async(req,res)=>{
     const userFound = await User.findByIdAndUpdate(
         req.user._id,
         {
-            $set: {
-                refreshToken: undefined
+            $unset: {
+                refreshToken: 1 // this removes the field from document
             }
         },
         {
@@ -140,17 +140,15 @@ const refreshAccessToken = asyncHandler( async (req,res)=>{
         throw new ApiError(401,"unauthorized access")
     }
    try {
-     const decodedRefeshToken = jwt.verify(reqRefeshToken,process.env.REFRESH_TOKEN_SECRET)
+     const decodedRefeshToken = jwt.verify(reqRefeshToken,process.env.REFRESH_TOKEN_SECRET) //If verification succeeds, decoded will contain the payload of the token
      const user = await User.findById(decodedRefeshToken._id)
-     console.log("djkdj")
-     console.log(user.refreshToken)
-     if(!user.refreshToken){
+     if(!user?.refreshToken){
         throw new ApiError(400, "user not logged in")
      }
      if(!user){
          throw new ApiError(401, "invalid refesh token")
      }
-     if(decodedRefeshToken.id !== user?.refreshAccessToken){
+     if(reqRefeshToken !== user?.refreshToken){
          throw new ApiError(401,"refresh token is expired or used")
      }
      const {accessToken,refreshToken} =(await generateAccessAndRefreshToken(user._id))
@@ -171,7 +169,7 @@ const refreshAccessToken = asyncHandler( async (req,res)=>{
              "Successfull refreshed")
      )
    } catch (error) {
-    throw new ApiError(500,"Error verifying refresh token")
+    throw new ApiError(400,"Error verifying refresh token")
    }
 
 
