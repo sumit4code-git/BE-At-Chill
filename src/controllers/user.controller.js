@@ -250,7 +250,7 @@ const updateUserCoverImage = asyncHandler(async (req,res)=>{
 })
 
 const getUserChannelProfile = asyncHandler(async (req,res) => {
-    const { username } = req.body
+    const { username } = req.params
     if(!username?.trim()){
         throw new ApiError(400,"Username is empty")
     }
@@ -315,6 +315,53 @@ const getUserChannelProfile = asyncHandler(async (req,res) => {
     )
 })
 
+const getWatchHistory = asyncHandler(async(req, res) => {
+    const user = await User.aggregate([
+        {
+            $match : new mongoose.Types.ObjectId(req.user._id)
+        },
+        {
+            $lookup : {
+                from : "videos",
+                localField: "watchHistory",
+                foreignField: "_id",
+                as : "watchHistory",
+                pipeline : [
+                    {
+                        $lookup : {
+                            from : "users",
+                            localField : "owner",
+                            foreignField : "_id",
+                            as : "owner",
+                            pipeline : [
+                                {
+                                    $project : {
+                                        fullName : 1,
+                                        thumbnail : 1,
+                                        username : 1
+                                    }
+                                },
+                                {
+                                    $addFields : {
+                                        owner : {
+                                            $first : "$owner"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                ]
+            }
+        }
+    ])
+    return res
+    .status(200)
+    .json(
+        new ApiResponse(200, user[0], "UWatch history fetched successfully")
+    )
+})
+
 export { 
     registerUser,
     loginUser ,
@@ -323,5 +370,6 @@ export {
     changeUserPassword,
     updateUserAvatar,
     updateUserCoverImage,
-    getUserChannelProfile
+    getUserChannelProfile,
+    getWatchHistory
 }
