@@ -5,6 +5,7 @@ import { User } from "../models/user.models.js";
 import { uploadOnCludinary } from "../utils/cloudinary.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import jwt from "jsonwebtoken"
+import { json } from "express";
 
 const registerUser = asyncHandler( async (req,res) =>{
     const {fullName, email, username, password } = req.body
@@ -248,6 +249,72 @@ const updateUserCoverImage = asyncHandler(async (req,res)=>{
 
 })
 
+const getUserChannelProfile = asyncHandler(async (req,res) => {
+    const { username } = req.body
+    if(!username?.trim()){
+        throw new ApiError(400,"Username is empty")
+    }
+    const channel = await User.aggregate([
+        {
+            $match : {
+                userName : username?.toLowerCase()
+            }
+        },
+        {
+            $lookup : {
+                from : "subscriptions",
+                localField : "_id",
+                foreignField : "channels",
+                as : "subscribers"
+            }
+        },
+        {
+            $lookup : {
+                from : "subscriptions",
+                localField : "_id",
+                foreignField : "subscribers",
+                as : "subscriberedTo"
+            }
+        },
+        {
+            $addFields : {
+                subscribersCount : {
+                    $size : "subscribers"
+                },
+                channeSsubscriberedToCount : {
+                    $size : "subscriberedTo"
+                },
+                isSubscribed : {
+                    $cond : {$in: [req.user?._id, "$subscribers.subscriber"]},
+                    then : true,
+                    else : false
+                }
+            }
+        },
+        {
+            $project : {
+                fullName: 1,
+                username: 1,
+                subscribersCount: 1,
+                channelsSubscribedToCount: 1,
+                isSubscribed: 1,
+                avatar: 1,
+                coverImage: 1,
+                email: 1
+            }
+        }
+    ])
+
+    if(!channel?.length){
+        throw new ApiError(400," unable to find User")
+    }
+    return res
+    .status(200)
+    .json(
+        new ApiResponse(200, channel[0], "User channel fetched successfully")
+    )
+})
+
 export { 
     registerUser,
     loginUser ,
@@ -255,5 +322,6 @@ export {
     refreshAccessToken,
     changeUserPassword,
     updateUserAvatar,
-    updateUserCoverImage
+    updateUserCoverImage,
+    getUserChannelProfile
 }
