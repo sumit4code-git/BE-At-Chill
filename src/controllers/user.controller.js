@@ -6,13 +6,13 @@ import { uploadOnCludinary } from "../utils/cloudinary.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import jwt from "jsonwebtoken";
 import { json } from "express";
+import mongoose from "mongoose";
 
 const registerUser = asyncHandler(async (req, res) => {
   const { fullName, email, username, password } = req.body;
   if (
     [fullName, email, username, password].some((field) => !field || field.trim() === "")
   ) {
-    // console.log("djd"+field)
     throw new ApiError(400, "All fields are required");
   }
   const userFind = await User.findOne({
@@ -278,16 +278,18 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
     {
       $addFields: {
         subscribersCount: {
-          $size: "subscribers",
+          $size: "$subscribers",
         },
         channeSsubscriberedToCount: {
-          $size: "subscriberedTo",
+          $size: "$subscriberedTo",
         },
         isSubscribed: {
-          $cond: { $in: [req.user?._id, "$subscribers.subscriber"] },
+          $cond: {
+            if : {$in: [req.user?._id, "$subscribers.subscriber"] },
           then: true,
           else: false,
-        },
+        }
+      }
       },
     },
     {
@@ -305,7 +307,7 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
   ]);
 
   if (!channel?.length) {
-    throw new ApiError(400, " unable to find User");
+    throw new ApiError(400, "channel does not exists");
   }
   return res
     .status(200)
@@ -317,7 +319,9 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
 const getWatchHistory = asyncHandler(async (req, res) => {
   const user = await User.aggregate([
     {
-      $match: new mongoose.Types.ObjectId(req.user._id),
+      $match: {
+        _id: new mongoose.Types.ObjectId(req.user._id)
+      }
     },
     {
       $lookup: {
@@ -357,7 +361,7 @@ const getWatchHistory = asyncHandler(async (req, res) => {
   return res
     .status(200)
     .json(
-      new ApiResponse(200, user[0], "UWatch history fetched successfully"),
+      new ApiResponse(200, user[0], "Watch history fetched successfully"),
     );
 });
 
