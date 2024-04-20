@@ -15,10 +15,8 @@ app.use(cookieParser());
 // routes import
 import userRouter from "./routes/user.router.js";
 import cookieParser from "cookie-parser";
+import commentRouter from "./routes/comment.routes.js"
 
-app.get("/", function(req, res) {
-  res.send("Helloe");
-});
 app.use("/api/v1/users", userRouter);
-
+app.use("/api/v1/comment", commentRouter);
 export { app };
